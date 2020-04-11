@@ -394,14 +394,14 @@ sds sdsgrowzero(sds s, size_t len) { //将字符串长度扩展到len
  *
  * After the call, the passed sds string is no longer valid and all the
  * references must be substituted with the new pointer returned by the call. */
-sds sdscatlen(sds s, const void *t, size_t len) {
+sds sdscatlen(sds s, const void *t, size_t len) { //在s后面拼接长度为len的字符串t
     size_t curlen = sdslen(s);
 
-    s = sdsMakeRoomFor(s,len);
+    s = sdsMakeRoomFor(s,len);//先保证空闲区的长度够len
     if (s == NULL) return NULL;
-    memcpy(s+curlen, t, len);
-    sdssetlen(s, curlen+len);
-    s[curlen+len] = '\0';
+    memcpy(s+curlen, t, len);//将t拷贝到s+curlen
+    sdssetlen(s, curlen+len);//设置新的s的长度
+    s[curlen+len] = '\0';	 //设置结尾
     return s;
 }
 
@@ -410,7 +410,7 @@ sds sdscatlen(sds s, const void *t, size_t len) {
  * After the call, the passed sds string is no longer valid and all the
  * references must be substituted with the new pointer returned by the call. */
 sds sdscat(sds s, const char *t) {
-    return sdscatlen(s, t, strlen(t));
+    return sdscatlen(s, t, strlen(t));//在s后面拼接字符串t
 }
 
 /* Append the specified sds 't' to the existing sds 's'.
@@ -418,19 +418,19 @@ sds sdscat(sds s, const char *t) {
  * After the call, the modified sds string is no longer valid and all the
  * references must be substituted with the new pointer returned by the call. */
 sds sdscatsds(sds s, const sds t) {
-    return sdscatlen(s, t, sdslen(t));
+    return sdscatlen(s, t, sdslen(t));//在s后面拼接一个sds
 }
 
 /* Destructively modify the sds string 's' to hold the specified binary
  * safe string pointed by 't' of length 'len' bytes. */
-sds sdscpylen(sds s, const char *t, size_t len) {
+sds sdscpylen(sds s, const char *t, size_t len) { //使用字符串t覆盖字符串s
     if (sdsalloc(s) < len) {
-        s = sdsMakeRoomFor(s,len-sdslen(s));
+        s = sdsMakeRoomFor(s,len-sdslen(s));//保证被覆盖的s有足够的空间容纳t
         if (s == NULL) return NULL;
     }
-    memcpy(s, t, len);
-    s[len] = '\0';
-    sdssetlen(s, len);
+    memcpy(s, t, len);	//将t拷贝到s
+    s[len] = '\0';		//设置尾部
+    sdssetlen(s, len);	//设置长度
     return s;
 }
 
@@ -454,21 +454,21 @@ int sdsll2str(char *s, long long value) {
 
     /* Generate the string representation, this method produces
      * an reversed string. */
-    v = (value < 0) ? -value : value;
+    v = (value < 0) ? -value : value;//负数变为正数，正数还是正数
     p = s;
     do {
-        *p++ = '0'+(v%10);
+        *p++ = '0'+(v%10);//不断取最低位
         v /= 10;
     } while(v);
-    if (value < 0) *p++ = '-';
+    if (value < 0) *p++ = '-';//负数加上负号
 
     /* Compute length and add null term. */
-    l = p-s;
-    *p = '\0';
+    l = p-s;//整数的长度
+    *p = '\0';//字符串结尾
 
     /* Reverse the string. */
     p--;
-    while(s < p) {
+    while(s < p) { //翻转字符串
         aux = *s;
         *s = *p;
         *p = aux;
@@ -513,9 +513,9 @@ int sdsull2str(char *s, unsigned long long v) {
  */
 sds sdsfromlonglong(long long value) {
     char buf[SDS_LLSTR_SIZE];
-    int len = sdsll2str(buf,value);
+    int len = sdsll2str(buf,value);//将整数变为字符串放在buf中
 
-    return sdsnewlen(buf,len);
+    return sdsnewlen(buf,len);//通过buf构造sds
 }
 
 /* Like sdscatprintf() but gets va_list instead of being variadic. */
@@ -701,18 +701,18 @@ sds sdscatfmt(sds s, char const *fmt, ...) {
  *
  * Output will be just "HelloWorld".
  */
-sds sdstrim(sds s, const char *cset) {
+sds sdstrim(sds s, const char *cset) { //去掉s头部尾部在集合cset中的字符
     char *start, *end, *sp, *ep;
     size_t len;
 
     sp = start = s;
     ep = end = s+sdslen(s)-1;
-    while(sp <= end && strchr(cset, *sp)) sp++;
-    while(ep > sp && strchr(cset, *ep)) ep--;
-    len = (sp > ep) ? 0 : ((ep-sp)+1);
-    if (s != sp) memmove(s, sp, len);
+    while(sp <= end && strchr(cset, *sp)) sp++;//从前往后，字符在cset中就往后继续找
+    while(ep > sp && strchr(cset, *ep)) ep--;//从后往前，字符在cset中就继续往前找
+    len = (sp > ep) ? 0 : ((ep-sp)+1); //sp>ep说明整个字符串中的字符都在cset中，去完变成空串
+    if (s != sp) memmove(s, sp, len);//将sp开始的搬到头部
     s[len] = '\0';
-    sdssetlen(s,len);
+    sdssetlen(s,len);//设置长度
     return s;
 }
 
@@ -732,19 +732,19 @@ sds sdstrim(sds s, const char *cset) {
  * s = sdsnew("Hello World");
  * sdsrange(s,1,-1); => "ello World"
  */
-void sdsrange(sds s, ssize_t start, ssize_t end) {
+void sdsrange(sds s, ssize_t start, ssize_t end) { //根据范围取s的子串
     size_t newlen, len = sdslen(s);
 
     if (len == 0) return;
     if (start < 0) {
-        start = len+start;
-        if (start < 0) start = 0;
+        start = len+start;//倒着数
+        if (start < 0) start = 0;//start绝对值超过len,不合法
     }
     if (end < 0) {
         end = len+end;
         if (end < 0) end = 0;
     }
-    newlen = (start > end) ? 0 : (end-start)+1;
+    newlen = (start > end) ? 0 : (end-start)+1;//开始位置在结束位置之后的话，不合法，否则求新的长度
     if (newlen != 0) {
         if (start >= (ssize_t)len) {
             newlen = 0;
@@ -755,7 +755,7 @@ void sdsrange(sds s, ssize_t start, ssize_t end) {
     } else {
         start = 0;
     }
-    if (start && newlen) memmove(s, s+start, newlen);
+    if (start && newlen) memmove(s, s+start, newlen);//覆盖原串
     s[newlen] = 0;
     sdssetlen(s,newlen);
 }
@@ -792,9 +792,9 @@ int sdscmp(const sds s1, const sds s2) {
     l1 = sdslen(s1);
     l2 = sdslen(s2);
     minlen = (l1 < l2) ? l1 : l2;
-    cmp = memcmp(s1,s2,minlen);
-    if (cmp == 0) return l1>l2? 1: (l1<l2? -1: 0);
-    return cmp;
+    cmp = memcmp(s1,s2,minlen);//先比较两者长度相同的部分
+    if (cmp == 0) return l1>l2? 1: (l1<l2? -1: 0);//如果长度相同的部分也相同，则比较两者长度，如果长度也相同则返回0
+    return cmp;//否则返回比较结果
 }
 
 /* Split 's' with separator in 'sep'. An array
@@ -1090,10 +1090,10 @@ sds sdsmapchars(sds s, const char *from, const char *to, size_t setlen) {
 sds sdsjoin(char **argv, int argc, char *sep) {
     sds join = sdsempty();
     int j;
-
+	//将字符串数组中的字符串串联起来，以seq为分割
     for (j = 0; j < argc; j++) {
         join = sdscat(join, argv[j]);
-        if (j != argc-1) join = sdscat(join,sep);
+        if (j != argc-1) join = sdscat(join,sep);//除了最后一个argv中的字符串，每个后面都加上sep
     }
     return join;
 }
